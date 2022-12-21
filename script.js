@@ -20,19 +20,39 @@ btnNew.onclick = () => {
     amount: Math.abs(amount.value).toFixed(2),
     type: type.value,
   });
+  fetch("https://sn-backend-production.up.railway.app/cadastrar", {
+    method: "POST",
+    cache: "no-cache",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      desc: descItem.value,
+      amount: Math.abs(amount.value).toFixed(2),
+      type: type.value,
+    }),
+  });
 
-  setItensBD();
-
-  loadItens();
+  refreshScreen(items);
 
   descItem.value = "";
   amount.value = "";
 };
 
-function deleteItem(index) {
-  items.splice(index, 1);
-  setItensBD();
-  loadItens();
+function deleteItem(id, index) {
+  items.splice(Number.parseInt(index), 1);
+  refreshScreen(items);
+
+  fetch("https://sn-backend-production-fed0.up.railway.app/excluir", {
+    method: "DELETE",
+    cache: "no-cache",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      id: id,
+    }),
+  });
 }
 
 function insertItem(item, index) {
@@ -47,21 +67,29 @@ function insertItem(item, index) {
         : '<i class="bx bxs-chevron-down-circle"></i>'
     }</td>
     <td class="columnAction">
-      <button onclick="deleteItem(${index})"><i class='bx bx-trash'></i></button>
+      <button onclick="deleteItem('${
+        item._id
+      }', ${index});"><i class='bx bx-trash'></i></button>
     </td>
   `;
 
   tbody.appendChild(tr);
 }
 
-function loadItens() {
-  items = getItensBD();
-  tbody.innerHTML = "";
-  items.forEach((item, index) => {
-    insertItem(item, index);
-  });
+async function loadItens() {
+  const gastos = await getItensBD();
+
+  items = gastos;
+  refreshScreen(gastos);
 
   getTotals();
+}
+
+function refreshScreen(itens) {
+  tbody.innerHTML = "";
+  itens.forEach((item, index) => {
+    insertItem(item, index);
+  });
 }
 
 function getTotals() {
@@ -88,8 +116,12 @@ function getTotals() {
   total.innerHTML = totalItems;
 }
 
-const getItensBD = () => JSON.parse(localStorage.getItem("db_items")) ?? [];
-const setItensBD = () =>
-  localStorage.setItem("db_items", JSON.stringify(items));
+async function getItensBD() {
+  const { gastos } = await (
+    await fetch("https://sn-backend-production.up.railway.app/listar")
+  ).json();
+
+  return gastos;
+}
 
 loadItens();
